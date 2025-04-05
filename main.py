@@ -3,18 +3,8 @@ from copy import deepcopy
 from io import StringIO
 
 
-class Printable(ABC):
-    """Base abstract class for printable objects."""
-
-    @abstractmethod
-    def print_me(self, os, prefix="", is_last=False):
-        """Base printing method for the tree structure display.
-        Implement properly to display hierarchical structure."""
-        pass
-
-    def clone(self):
-        """Create a deep copy of this object."""
-        return deepcopy(self)
+class TreePrinter:
+    """Helper class for tree-related printing logic."""
 
     @staticmethod
     def tree_connector(is_last):
@@ -27,6 +17,20 @@ class Printable(ABC):
     @staticmethod
     def sub_prefix(prefix, is_last):
         return prefix + ("  " if is_last else "| ")
+
+
+class Printable(ABC):
+    """Base abstract class for printable objects."""
+
+    @abstractmethod
+    def print_me(self, os, prefix="", is_last=False):
+        """Base printing method for the tree structure display.
+        Implement properly to display hierarchical structure."""
+        pass
+
+    def clone(self):
+        """Create a deep copy of this object."""
+        return deepcopy(self)
 
     def __str__(self):
         os = StringIO()
@@ -46,69 +50,94 @@ class Address(Printable):
     """Class representing a network address."""
 
     def __init__(self, addr):
-        self.address = addr
+        self._address = addr
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"{prefix}{Printable.tree_connector(is_last)}{self.address}\n")
+        os.write(f"{prefix}{TreePrinter.tree_connector(is_last)}{self._address}\n")
+
+    @property
+    def address(self):
+        return self._address
 
 
 class Computer(BasicCollection):
     """Class representing a computer with addresses and components."""
 
     def __init__(self, name):
-        self.name = name
-        self.addresses = []
-        self.components = []
+        self._name = name
+        self._addresses = []
+        self._components = []
 
     def add_address(self, addr):
-        self.addresses.append(Address(addr))
+        self._addresses.append(Address(addr))
         return self
 
     def add_component(self, comp):
-        self.components.append(comp)
+        self._components.append(comp)
         return self
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"{prefix}{Printable.tree_connector(is_last)}Host: {self.name}\n")
+        os.write(f"{prefix}{TreePrinter.tree_connector(is_last)}Host: {self._name}\n")
 
-        sub_prefix = Printable.sub_prefix(prefix, is_last)
+        sub_prefix = TreePrinter.sub_prefix(prefix, is_last)
 
-        for i, addr in enumerate(self.addresses):
+        for i, addr in enumerate(self._addresses):
             addr.print_me(
                 os,
                 sub_prefix,
                 is_last=(
-                    Printable.is_last(i, self.addresses) and len(self.components) == 0
+                    TreePrinter.is_last(i, self._addresses)
+                    and len(self._components) == 0
                 ),
             )
 
-        for i, comp in enumerate(self.components):
+        for i, comp in enumerate(self._components):
             comp.print_me(
-                os, sub_prefix, is_last=(Printable.is_last(i, self.components))
+                os, sub_prefix, is_last=(TreePrinter.is_last(i, self._components))
             )
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def addresses(self):
+        return self._addresses
+
+    @property
+    def components(self):
+        return self._components
 
 
 class Network(Printable):
     """Class representing a network of computers."""
 
     def __init__(self, name):
-        self.name = name
-        self.computers = []
+        self._name = name
+        self._computers = []
 
     def add_computer(self, comp):
-        self.computers.append(comp)
+        self._computers.append(comp)
         return self
 
     def find_computer(self, name):
-        for comp in self.computers:
+        for comp in self._computers:
             if comp.name == name:
                 return comp
         return None
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"Network: {self.name}\n")
-        for i, comp in enumerate(self.computers):
-            comp.print_me(os, "", Printable.is_last(i, self.computers))
+        os.write(f"Network: {self._name}\n")
+        for i, comp in enumerate(self._computers):
+            comp.print_me(os, "", TreePrinter.is_last(i, self._computers))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def computers(self):
+        return self._computers
 
 
 class Disk(Component):
@@ -119,54 +148,78 @@ class Disk(Component):
     MAGNETIC = 1
 
     def __init__(self, storage_type, size):
-        self.storage_type = storage_type
-        self.size = size
-        self.partitions = []
+        self._storage_type = storage_type
+        self._size = size
+        self._partitions = []
 
     def add_partition(self, size, name):
-        self.partitions.append((size, name))
+        self._partitions.append((size, name))
         return self
 
     def print_me(self, os, prefix="", is_last=True):
-        disk_type = "SSD" if self.storage_type == Disk.SSD else "HDD"
+        disk_type = "SSD" if self._storage_type == Disk.SSD else "HDD"
 
         os.write(
-            f"{prefix}{Printable.tree_connector(is_last)}{disk_type}, {self.size} GiB\n"
+            f"{prefix}{TreePrinter.tree_connector(is_last)}{disk_type}, {self._size} GiB\n"
         )
 
-        part_prefix = Printable.sub_prefix(prefix, is_last)
+        part_prefix = TreePrinter.sub_prefix(prefix, is_last)
 
-        for i, (size, name) in enumerate(self.partitions):
-            last = Printable.is_last(i, self.partitions)
+        for i, (size, name) in enumerate(self._partitions):
+            last = TreePrinter.is_last(i, self._partitions)
 
             os.write(
-                f"{part_prefix}{Printable.tree_connector(last)}[{i}]: {size} GiB, {name}\n"
+                f"{part_prefix}{TreePrinter.tree_connector(last)}[{i}]: {size} GiB, {name}\n"
             )
+
+    @property
+    def storage_type(self):
+        return self._storage_type
+
+    @property
+    def size(self):
+        return self._size
+
+    @property
+    def partitions(self):
+        return self._partitions
 
 
 class CPU(Component):
     """CPU component class."""
 
     def __init__(self, cores, mhz):
-        self.cores = cores
-        self.mhz = mhz
+        self._cores = cores
+        self._mhz = mhz
 
     def print_me(self, os, prefix="", is_last=True):
         os.write(
-            f"{prefix}{Printable.tree_connector(is_last)}CPU, {self.cores} cores @ {self.mhz}MHz\n"
+            f"{prefix}{TreePrinter.tree_connector(is_last)}CPU, {self._cores} cores @ {self._mhz}MHz\n"
         )
+
+    @property
+    def cores(self):
+        return self._cores
+
+    @property
+    def mhz(self):
+        return self._mhz
 
 
 class Memory(Component):
     """Memory component class."""
 
     def __init__(self, size):
-        self.size = size
+        self._size = size
 
     def print_me(self, os, prefix="", is_last=True):
         os.write(
-            f"{prefix}{Printable.tree_connector(is_last)}Memory, {self.size} MiB\n"
+            f"{prefix}{TreePrinter.tree_connector(is_last)}Memory, {self._size} MiB\n"
         )
+
+    @property
+    def size(self):
+        return self._size
 
 
 # Пример использования (может быть неполным или содержать ошибки)
