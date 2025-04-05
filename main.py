@@ -49,7 +49,7 @@ class Address(Printable):
         self.address = addr
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"{prefix}{self.tree_connector(is_last)}{self.address}\n")
+        os.write(f"{prefix}{Printable.tree_connector(is_last)}{self.address}\n")
 
 
 class Computer(BasicCollection):
@@ -69,7 +69,7 @@ class Computer(BasicCollection):
         return self
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"{prefix}{self.tree_connector(is_last)}Host: {self.name}\n")
+        os.write(f"{prefix}{Printable.tree_connector(is_last)}Host: {self.name}\n")
 
         sub_prefix = Printable.sub_prefix(prefix, is_last)
 
@@ -131,7 +131,7 @@ class Disk(Component):
         disk_type = "SSD" if self.storage_type == Disk.SSD else "HDD"
 
         os.write(
-            f"{prefix}{self.tree_connector(is_last)}{disk_type}, {self.size} GiB\n"
+            f"{prefix}{Printable.tree_connector(is_last)}{disk_type}, {self.size} GiB\n"
         )
 
         part_prefix = Printable.sub_prefix(prefix, is_last)
@@ -140,7 +140,7 @@ class Disk(Component):
             last = Printable.is_last(i, self.partitions)
 
             os.write(
-                f"{part_prefix}{self.tree_connector(last)}[{i}]: {size} GiB, {name}\n"
+                f"{part_prefix}{Printable.tree_connector(last)}[{i}]: {size} GiB, {name}\n"
             )
 
 
@@ -153,7 +153,7 @@ class CPU(Component):
 
     def print_me(self, os, prefix="", is_last=True):
         os.write(
-            f"{prefix}{self.tree_connector(is_last)}CPU, {self.cores} cores @ {self.mhz}MHz\n"
+            f"{prefix}{Printable.tree_connector(is_last)}CPU, {self.cores} cores @ {self.mhz}MHz\n"
         )
 
 
@@ -164,7 +164,9 @@ class Memory(Component):
         self.size = size
 
     def print_me(self, os, prefix="", is_last=True):
-        os.write(f"{prefix}{self.tree_connector(is_last)}Memory, {self.size} MiB\n")
+        os.write(
+            f"{prefix}{Printable.tree_connector(is_last)}Memory, {self.size} MiB\n"
+        )
 
 
 # Пример использования (может быть неполным или содержать ошибки)
