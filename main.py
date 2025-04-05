@@ -1,111 +1,177 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
-import copy
+from copy import deepcopy
+from io import StringIO
+
 
 class Printable(ABC):
     """Base abstract class for printable objects."""
-    
-    def print_me(self, os, prefix="", is_last=False, no_slash=False, is_root=False):
+
+    @abstractmethod
+    def print_me(self, os, prefix="", is_last=False):
         """Base printing method for the tree structure display.
         Implement properly to display hierarchical structure."""
-        # To be implemented
-        
-    @abstractmethod
+        pass
+
     def clone(self):
         """Create a deep copy of this object."""
-        pass
+        return deepcopy(self)
+
+    @staticmethod
+    def tree_connector(is_last):
+        return "\\-" if is_last else "+-"
+
+    @staticmethod
+    def is_last(index, items):
+        return index == len(items) - 1
+
+    @staticmethod
+    def sub_prefix(prefix, is_last):
+        return prefix + ("  " if is_last else "| ")
+
+    def __str__(self):
+        os = StringIO()
+        self.print_me(os)
+        return os.getvalue().rstrip()
+
 
 class BasicCollection(Printable):
     """Base class for collections of items."""
-    def __init__(self):
-        self.items = []
-    
-    def add(self, elem):
-        # To be implemented
-        pass
-    
-    def find(self, elem):
-        # To be implemented
-        pass
+
 
 class Component(Printable):
     """Base class for computer components."""
-    def __init__(self, numeric_val=0):
-        self.numeric_val = numeric_val
-        
-    # To be implemented
+
 
 class Address(Printable):
     """Class representing a network address."""
+
     def __init__(self, addr):
         self.address = addr
-    
-    # To be implemented
 
-class Computer(BasicCollection, Component):
+    def print_me(self, os, prefix="", is_last=True):
+        os.write(f"{prefix}{self.tree_connector(is_last)}{self.address}\n")
+
+
+class Computer(BasicCollection):
     """Class representing a computer with addresses and components."""
+
     def __init__(self, name):
         self.name = name
         self.addresses = []
         self.components = []
-    
+
     def add_address(self, addr):
-        # To be implemented
+        self.addresses.append(Address(addr))
         return self
-    
+
     def add_component(self, comp):
-        # To be implemented
+        self.components.append(comp)
         return self
-    
-    # Другие методы...
+
+    def print_me(self, os, prefix="", is_last=True):
+        os.write(f"{prefix}{self.tree_connector(is_last)}Host: {self.name}\n")
+
+        sub_prefix = Printable.sub_prefix(prefix, is_last)
+
+        for i, addr in enumerate(self.addresses):
+            addr.print_me(
+                os,
+                sub_prefix,
+                is_last=(
+                    Printable.is_last(i, self.addresses) and len(self.components) == 0
+                ),
+            )
+
+        for i, comp in enumerate(self.components):
+            comp.print_me(
+                os, sub_prefix, is_last=(Printable.is_last(i, self.components))
+            )
+
 
 class Network(Printable):
     """Class representing a network of computers."""
+
     def __init__(self, name):
         self.name = name
         self.computers = []
-    
+
     def add_computer(self, comp):
-        # To be implemented
+        self.computers.append(comp)
         return self
-    
+
     def find_computer(self, name):
-        # To be implemented
+        for comp in self.computers:
+            if comp.name == name:
+                return comp
         return None
-    
-    # Другие методы...
+
+    def print_me(self, os, prefix="", is_last=True):
+        os.write(f"Network: {self.name}\n")
+        for i, comp in enumerate(self.computers):
+            comp.print_me(os, "", Printable.is_last(i, self.computers))
+
 
 class Disk(Component):
     """Disk component class with partitions."""
+
     # Определение типов дисков
     SSD = 0
     MAGNETIC = 1
-    
+
     def __init__(self, storage_type, size):
-        # Initialize properly
+        self.storage_type = storage_type
+        self.size = size
         self.partitions = []
-    
+
     def add_partition(self, size, name):
-        # To be implemented
+        self.partitions.append((size, name))
         return self
+
+    def print_me(self, os, prefix="", is_last=True):
+        disk_type = "SSD" if self.storage_type == Disk.SSD else "HDD"
+
+        os.write(
+            f"{prefix}{self.tree_connector(is_last)}{disk_type}, {self.size} GiB\n"
+        )
+
+        part_prefix = Printable.sub_prefix(prefix, is_last)
+
+        for i, (size, name) in enumerate(self.partitions):
+            last = Printable.is_last(i, self.partitions)
+
+            os.write(
+                f"{part_prefix}{self.tree_connector(last)}[{i}]: {size} GiB, {name}\n"
+            )
+
 
 class CPU(Component):
     """CPU component class."""
+
     def __init__(self, cores, mhz):
-        # To be implemented
-        pass
+        self.cores = cores
+        self.mhz = mhz
+
+    def print_me(self, os, prefix="", is_last=True):
+        os.write(
+            f"{prefix}{self.tree_connector(is_last)}CPU, {self.cores} cores @ {self.mhz}MHz\n"
+        )
+
 
 class Memory(Component):
     """Memory component class."""
+
     def __init__(self, size):
-        # To be implemented
-        pass
+        self.size = size
+
+    def print_me(self, os, prefix="", is_last=True):
+        os.write(f"{prefix}{self.tree_connector(is_last)}Memory, {self.size} MiB\n")
+
 
 # Пример использования (может быть неполным или содержать ошибки)
 def main():
     # Создание тестовой сети
     n = Network("MISIS network")
-    
+
     # Добавляем первый сервер с одним CPU и памятью
     n.add_computer(
         Computer("server1.misis.ru")
@@ -113,7 +179,7 @@ def main():
         .add_component(CPU(4, 2500))
         .add_component(Memory(16000))
     )
-    
+
     # Добавляем второй сервер с CPU и HDD с разделами
     n.add_computer(
         Computer("server2.misis.ru")
@@ -125,11 +191,11 @@ def main():
             .add_partition(1500, "data")
         )
     )
-    
+
     # Выводим сеть для проверки форматирования
     print("=== Созданная сеть ===")
     print(n)
-    
+
     # Тест ожидаемого вывода
     expected_output = """Network: MISIS network
 +-Host: server1.misis.ru
@@ -142,61 +208,60 @@ def main():
   \-HDD, 2000 GiB
     +-[0]: 500 GiB, system
     \-[1]: 1500 GiB, data"""
-    
+
     assert str(n) == expected_output, "Формат вывода не соответствует ожидаемому"
     print("✓ Тест формата вывода пройден")
-    
+
     # Тестируем глубокое копирование
     print("\n=== Тестирование глубокого копирования ===")
     x = n.clone()
-    
+
     # Тестируем поиск компьютера
     print("Поиск компьютера server2.misis.ru:")
     c = x.find_computer("server2.misis.ru")
     print(c)
-    
+
     # Модифицируем найденный компьютер в копии
     print("\nДобавляем SSD к найденному компьютеру в копии:")
-    c.add_component(
-        Disk(Disk.SSD, 500)
-        .add_partition(500, "fast_storage")
-    )
-    
+    c.add_component(Disk(Disk.SSD, 500).add_partition(500, "fast_storage"))
+
     # Проверяем, что оригинал не изменился
     print("\n=== Модифицированная копия ===")
     print(x)
     print("\n=== Исходная сеть (должна остаться неизменной) ===")
     print(n)
-    
+
     # Проверяем ассерты для тестирования системы
     print("\n=== Выполнение тестов ===")
-    
+
     # Тест поиска
     assert x.find_computer("server1.misis.ru") is not None, "Компьютер не найден"
     print("✓ Тест поиска пройден")
-    
+
     # Тест независимости копий
     original_server2 = n.find_computer("server2.misis.ru")
     modified_server2 = x.find_computer("server2.misis.ru")
-    
+
     original_components = sum(1 for _ in original_server2.components)
     modified_components = sum(1 for _ in modified_server2.components)
-    
-    assert original_components == 2, f"Неверное количество компонентов в оригинале: {original_components}"
-    assert modified_components == 3, f"Неверное количество компонентов в копии: {modified_components}"
+
+    assert original_components == 2, (
+        f"Неверное количество компонентов в оригинале: {original_components}"
+    )
+    assert modified_components == 3, (
+        f"Неверное количество компонентов в копии: {modified_components}"
+    )
     print("✓ Тест независимости копий пройден")
-    
+
     # Проверка типов дисков
-    disk_tests = [
-        (Disk(Disk.SSD, 256), "SSD"),
-        (Disk(Disk.MAGNETIC, 1000), "HDD")
-    ]
-    
+    disk_tests = [(Disk(Disk.SSD, 256), "SSD"), (Disk(Disk.MAGNETIC, 1000), "HDD")]
+
     for disk, expected_type in disk_tests:
         assert expected_type in str(disk), f"Неверный тип диска в выводе: {str(disk)}"
     print("✓ Тест типов дисков пройден")
-    
+
     print("\nВсе тесты пройдены!")
+
 
 if __name__ == "__main__":
     main()
